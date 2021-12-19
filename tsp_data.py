@@ -2,13 +2,14 @@ import math
 import numpy as np
 import random
 import itertools
+from tqdm import tqdm
 
 
 class Tsp:
     def next_batch(self, batch_size=1):
         X, Y = [], []
-        for b in range(batch_size):
-            print("preparing dataset... %s/%s" % (b, batch_size))
+        for b in tqdm( range(batch_size) ):
+            # print("preparing dataset... %s/%s" % (b, batch_size))
             points = self.generate_data()
             solved = self.solve_tsp_dynamic(points)
             X.append(points), Y.append(solved)

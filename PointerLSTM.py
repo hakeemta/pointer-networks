@@ -1,20 +1,18 @@
 import keras.backend as K
 from keras.activations import tanh, softmax
-from keras.engine import InputSpec
-from keras.layers import LSTM
-import keras
+from keras.layers import LSTM, InputSpec, Dense, Layer
 
 
-class Attention(keras.layers.Layer):
+class Attention(Layer):
     """
         Attention layer
     """
 
     def __init__(self, hidden_dimensions, name='attention'):
         super(Attention, self).__init__(name=name, trainable=True)
-        self.W1 = keras.layers.Dense(hidden_dimensions, use_bias=False)
-        self.W2 = keras.layers.Dense(hidden_dimensions, use_bias=False)
-        self.V = keras.layers.Dense(1, use_bias=False)
+        self.W1 = Dense(hidden_dimensions, use_bias=False)
+        self.W2 = Dense(hidden_dimensions, use_bias=False)
+        self.V = Dense(1, use_bias=False)
 
     def call(self, encoder_outputs, dec_output, mask=None):
 
@@ -29,14 +27,14 @@ class Attention(keras.layers.Layer):
         return K.reshape(attention_weights, (att_shape[0], att_shape[1]))
 
 
-class Decoder(keras.layers.Layer):
+class Decoder(Layer):
     """
         Decoder class for PointerLayer
     """
 
     def __init__(self, hidden_dimensions):
         super(Decoder, self).__init__()
-        self.lstm = keras.layers.LSTM(
+        self.lstm = LSTM(
             hidden_dimensions, return_sequences=False, return_state=True)
 
     def call(self, x, hidden_states):
@@ -51,14 +49,15 @@ class Decoder(keras.layers.Layer):
         return self.lstm._process_inputs(x_input, initial_states, constants)
 
 
-class PointerLSTM(keras.layers.Layer):
+class PointerLSTM(Layer):
     """
         PointerLSTM
     """
 
-    def __init__(self, hidden_dimensions, name='pointer', **kwargs):
-        super(PointerLSTM, self).__init__(
-            hidden_dimensions, name=name, **kwargs)
+    def __init__(self, hidden_dimensions, **kwargs):
+        # if 'name' not in kwargs:
+        #     kwargs['name'] = 'pointer'
+        super(PointerLSTM, self).__init__(**kwargs)
         self.hidden_dimensions = hidden_dimensions
         self.attention = Attention(hidden_dimensions)
         self.decoder = Decoder(hidden_dimensions)
@@ -69,8 +68,8 @@ class PointerLSTM(keras.layers.Layer):
 
     def call(self, x, training=None, mask=None, states=None):
         """
-        :param Tensor x: Should be the output of the decoder
-        :param Tensor states: last state of the decoder
+        :param Tensor x: Should be the output of the encoder
+        :param Tensor states: last state of the encoder
         :param Tensor mask: The mask to apply
         :return: Pointers probabilities
         """
@@ -97,7 +96,7 @@ class PointerLSTM(keras.layers.Layer):
         return outputs
 
     def step(self, x_input, states):
-        x_input = K.expand_dims(x_input,1)
+        x_input = K.expand_dims(x_input, 1)
         input_shape = self.input_spec[0].shape
         en_seq = states[-1]
         _, [h, c] = self.decoder(x_input, states[:-1])
