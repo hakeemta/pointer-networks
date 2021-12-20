@@ -66,7 +66,8 @@ class PointerDecoder(Layer):
 
             # Query with the hidden state and store the current probs
             context, probs = self.attention(enc_outputs, state_h, mask)
-            probs_outputs.append( K.expand_dims(probs, axis=1) )
+            probs = K.expand_dims(probs, axis=1)
+            probs_outputs.append(probs)
 
             # Reinject the pointed context as inputs for the next timestep and update the state
             inputs = K.expand_dims(context, axis=1)

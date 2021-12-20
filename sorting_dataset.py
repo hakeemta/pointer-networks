@@ -3,7 +3,10 @@ import numpy as np
 def order(X, by_idx=False):
     # Are these the same?!
     # Ip => Index I occupying pth position
-    y = X.argsort()
+    # NB: with padding, offset is 1
+    y = X.argsort() + 1
+    padding = np.zeros(shape=(y.shape[0], 1))
+    y = np.concatenate((y,  padding), axis=1)
 
     if not by_idx:
         return y
@@ -30,7 +33,7 @@ def gen_data(N, seq_len, order_by_idx=False, low=1, high=100):
 
 
 def gen_jagged_data(N, max_seq_len, order_by_idx=False, low=1, high=100):
-    seq_lens = np.random.randint(1, max_seq_len, size=(N) )
+    seq_lens = np.random.randint(1, max_seq_len+1, size=(N) )
     seq_lens_counts = np.unique(seq_lens, return_counts=True)
 
     all_X = []
