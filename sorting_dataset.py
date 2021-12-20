@@ -17,6 +17,7 @@ def order(X, by_idx=False):
 
 def gen_seq(**kwargs):
     X = np.random.randint(**kwargs)
+    X = X / np.expand_dims(X.max(axis=1), axis=1)
 
     def _order(order_by_idx=False):
         y = order(X, order_by_idx)

@@ -1,3 +1,4 @@
+import numpy as np
 import keras
 import tensorflow as tf
 import keras.backend as K
@@ -19,7 +20,7 @@ class PointerAttention(Layer):
     def _extract_context_vector(self, value, weights):
         idx = K.expand_dims( K.argmax(weights) )
         r = K.expand_dims( K.arange(idx.shape[0], dtype=idx.dtype) )
-        indices = K.concatenate( [r, idx] )
+        indices = K.concatenate([r, idx])
         return tf.gather_nd(value, indices)
         
     def call(self, value, query, mask=None):
@@ -31,7 +32,7 @@ class PointerAttention(Layer):
         u = K.squeeze(u, axis=2)
 
         if mask is not None:
-            mask_values = K.cast(mask[0], u.dtype)
+            mask_values = K.cast(mask, u.dtype)
             u += (1-mask_values) * K.constant(-1e20) # -np.infty
                 
         a = softmax(u, axis=1)
@@ -56,18 +57,31 @@ class PointerDecoder(Layer):
         self.supports_masking = True
 
     def call(self, enc_outputs, initial_state=None, mask=None, *args, **kwargs):
+        # print(mask)
         probs_outputs = []
         # Use the last state of the encoder as the first inputs and use its states as initial states
         inputs = enc_outputs[:, -1:]
         states = initial_state
-        for _ in range(self.output_size):
+        for t in range(self.output_size):
             # Run the decoder on one timestep
             outputs, state_h, state_c = self.lstm(inputs, initial_state=states)
 
             # Query with the hidden state and store the current probs
             context, probs = self.attention(enc_outputs, state_h, mask)
-            probs = K.expand_dims(probs, axis=1)
-            probs_outputs.append(probs)
+
+            # Mask the probabilities
+            mask_values = K.cast(mask[:, t], dtype=probs.dtype)
+            mask_values = K.expand_dims(mask_values)
+
+            probs_unmasked = probs[:, :-1] * mask_values
+            probs_masked = K.constant(1.0, dtype=probs.dtype) - mask_values
+
+            probs_adjusted = K.concatenate([probs_masked, probs_unmasked])
+            probs_adjusted = probs_adjusted 
+            # print(probs_adjusted)
+
+            # Keep the step probs
+            probs_outputs.append( K.expand_dims(probs_adjusted, axis=1) )
 
             # Reinject the pointed context as inputs for the next timestep and update the state
             inputs = K.expand_dims(context, axis=1)
