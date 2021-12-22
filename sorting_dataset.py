@@ -5,8 +5,6 @@ def order(X, by_idx=False):
     # Ip => Index I occupying pth position
     # NB: with padding, offset is 1
     y = X.argsort() + 1
-    padding = np.zeros(shape=(y.shape[0], 1))
-    y = np.concatenate((y,  padding), axis=1)
 
     if not by_idx:
         return y
